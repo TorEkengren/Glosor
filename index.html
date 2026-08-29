@@ -82,6 +82,10 @@
         button:active {
             transform: scale(0.98);
         }
+        button:focus {
+            outline: 3px solid #60a5fa;
+            outline-offset: 2px;
+        }
         #word-display {
             font-size: 42px;
             font-weight: bold;
@@ -98,7 +102,6 @@
             border-radius: 8px;
         }
         
-        /* Dynamiska bakgrunder och färger för svar */
         body.mode-correct {
             background-color: #064e3b;
         }
@@ -177,14 +180,11 @@
     let score = 0;
     let isWaitingForNext = false;
 
-    // Lyssna på Enter-tangenten över hela dokumentet
-    document.addEventListener("keydown", function(event) {
-        // Körs bara om quizet faktiskt är igång (inte dolt)
-        if (!document.getElementById("quiz-area").classList.contains("hidden")) {
-            if (event.key === "Enter") {
-                event.preventDefault(); // Hindrar standardbeteenden
-                handleAction();
-            }
+    // Lyssna BARA på input-fältet (istället för hela dokumentet)
+    document.getElementById("answer-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            handleAction();
         }
     });
 
@@ -224,18 +224,21 @@
     function showWord() {
         isWaitingForNext = false;
         
-        // Återställ färger till normalt mörkt läge
         document.getElementById("body").className = "";
         const feedbackEl = document.getElementById("feedback");
         feedbackEl.textContent = "";
         feedbackEl.className = "feedback";
         
         const inputEl = document.getElementById("answer-input");
+        const btnEl = document.getElementById("action-btn");
+        
         inputEl.value = "";
         inputEl.disabled = false;
-        inputEl.focus();
         
-        document.getElementById("action-btn").textContent = "Svara";
+        // Viktigt: Flyttar tillbaka fokus till textfältet!
+        inputEl.focus(); 
+        
+        btnEl.textContent = "Svara";
         document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt: ${score}`;
         
         if (currentIndex < swedishWords.length) {
@@ -254,6 +257,7 @@
 
         const feedbackEl = document.getElementById("feedback");
         const bodyEl = document.getElementById("body");
+        const btnEl = document.getElementById("action-btn");
         
         if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
             feedbackEl.textContent = "RÄTT!";
@@ -267,7 +271,11 @@
         }
         
         document.getElementById("answer-input").disabled = true;
-        document.getElementById("action-btn").textContent = "Nästa ord (Tryck Enter)";
+        
+        btnEl.textContent = "Nästa ord (Tryck Enter)";
+        // Viktigt: Flyttar fokus till "Nästa"-knappen så Enter fungerar direkt!
+        btnEl.focus(); 
+        
         document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt: ${score}`;
         isWaitingForNext = true;
     }
@@ -281,12 +289,15 @@
         document.getElementById("body").className = "";
         document.getElementById("word-display").textContent = "Förhöret är klart!";
         document.getElementById("answer-input").classList.add("hidden");
-        document.getElementById("action-btn").textContent = "Börja om";
-        document.getElementById("action-btn").onclick = () => {
+        
+        const btnEl = document.getElementById("action-btn");
+        btnEl.textContent = "Börja om";
+        btnEl.focus();
+        btnEl.onclick = () => {
             document.getElementById("quiz-area").classList.add("hidden");
             document.getElementById("setup-area").classList.remove("hidden");
             document.getElementById("answer-input").classList.remove("hidden");
-            document.getElementById("action-btn").onclick = handleAction;
+            btnEl.onclick = handleAction; // Återställ knappens funktion
         };
     }
 </script>
