@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stort Glosförhör - Dark Mode</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+        .container {
+            background-color: #1e1e1e;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+        h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        p {
+            font-size: 18px;
+            color: #b0b0b0;
+        }
+        textarea {
+            width: 100%;
+            height: 350px;
+            font-family: monospace;
+            font-size: 16px;
+            padding: 15px;
+            box-sizing: border-box;
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            border: 1px solid #444;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            resize: vertical;
+        }
+        textarea:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
+        input[type="text"] {
+            padding: 16px;
+            width: 85%;
+            font-size: 22px;
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border: 2px solid #555;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        input[type="text"]:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
+        button {
+            padding: 16px 35px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        #word-display {
+            font-size: 42px;
+            font-weight: bold;
+            margin: 30px 0;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+        .feedback {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 20px 0;
+            min-height: 40px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        /* Dynamiska bakgrunder och färger för svar */
+        body.mode-correct {
+            background-color: #064e3b; /* Djupgrön bakgrund vid rätt svar */
+        }
+        body.container.mode-correct {
+            border-color: #10b981;
+        }
+        .correct {
+            color: #ffffff;
+            background-color: #059669;
+            border: 2px solid #34d399;
+        }
+
+        body.mode-incorrect {
+            background-color: #7f1d1d; /* Djupet röd bakgrund vid fel svar */
+        }
+        .incorrect {
+            color: #ffffff;
+            background-color: #dc2626;
+            border: 2px solid #f87171;
+        }
+
+        .hidden { display: none; }
+        .stats { margin-top: 30px; font-size: 18px; color: #9ca3af; }
+    </style>
+</head>
+<body id="body">
+
+<div class="container" id="setup-area">
+    <h2>Dina glosor (JSON-format)</h2>
+    <p>Redigera ordlistan nedan om du vill och tryck sedan på startknappen.</p>
+    <textarea id="json-input">{
+  "bron": "die Brücke",
+  "ljus": "hell",
+  "hög/t": "hoch",
+  "absolut": "unbedingt",
+  "sätta upp tältet": "das Zelt aufbauen",
+  "någonstans": "irgendwo",
+  "på något sätt": "irgendwie",
+  "helvetet": "die Hölle",
+  "kyrkan": "die Kirche",
+  "meningen": "der Sinn",
+  "det roliga": "der Spaß",
+  "stolen": "der Stuhl",
+  "Tysklands största ö": "Rügen",
+  "åska": "donnern",
+  "upptagen / upptaget": "besetzt",
+  "klippan": "der Fels",
+  "upplevelsen": "das Erlebnis",
+  "myggan": "die Mücke",
+  "kön": "der Stau",
+  "trakten, området": "die Gegend",
+  "drunkna": "ertrinken",
+  "brant": "steil"
+}</textarea>
+    <br>
+    <button onclick="startQuiz()">Starta förhöret</button>
+</div>
+
+<div class="container hidden" id="quiz-area">
+    <h2>Vad är detta på tyska?</h2>
+    <div id="word-display"></div>
+
+    <input type="text" id="answer-input" placeholder="Skriv på tyska och tryck Enter..." autocomplete="off">
+    <br>
+    <button id="action-btn" onclick="handleAction()">Svara</button>
+
+    <div id="feedback" class="feedback"></div>
+
+    <div class="stats" id="stats"></div>
+</div>
+
+<script>
+    let wordsData = {};
+    let swedishWords = [];
+    let currentIndex = 0;
+    let score = 0;
+    let isWaitingForNext = false;
+
+    // Lyssna på Enter-tangenten överallt i quiz-läget
+    document.getElementById("answer-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            handleAction();
+        }
+    });
+
+    function handleAction() {
+        if (isWaitingForNext) {
+            nextWord();
+        } else {
+            checkAnswer();
+        }
+    }
+
+    function startQuiz() {
+        const jsonText = document.getElementById("json-input").value;
+        try {
+            wordsData = JSON.parse(jsonText);
+            swedishWords = Object.keys(wordsData);
+
+            if (swedishWords.length === 0) {
+                alert("Listan är tom!");
+                return;
+            }
+
+            swedishWords.sort(() => Math.random() - 0.5);
+
+            currentIndex = 0;
+            score = 0;
+
+            document.getElementById("setup-area").classList.add("hidden");
+            document.getElementById("quiz-area").classList.remove("hidden");
+
+            showWord();
+        } catch (e) {
+            alert("Ogiltigt JSON-format! Kontrollera citattecken och kommatecken.");
+        }
+    }
+
+    function showWord() {
+        isWaitingForNext = false;
+
+        // Återställ färger till normalt mörkt läge
+        document.getElementById("body").className = "";
+        const feedbackEl = document.getElementById("feedback");
+        feedbackEl.textContent = "";
+        feedbackEl.className = "feedback";
+
+        const inputEl = document.getElementById("answer-input");
+        inputEl.value = "";
+        inputEl.disabled = false;
+        inputEl.focus();
+
+        document.getElementById("action-btn").textContent = "Svara";
+        document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt: ${score}`;
+
+        if (currentIndex < swedishWords.length) {
+            document.getElementById("word-display").textContent = swedishWords[currentIndex];
+        } else {
+            endQuiz();
+        }
+    }
+
+    function checkAnswer() {
+        const currentSwedishWord = swedishWords[currentIndex];
+        const correctAnswer = wordsData[currentSwedishWord];
+        const userAnswer = document.getElementById("answer-input").value.trim();
+
+        if (userAnswer === "") return;
+
+        const feedbackEl = document.getElementById("feedback");
+        const bodyEl = document.getElementById("body");
+
+        if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+            feedbackEl.textContent = "RÄTT!";
+            feedbackEl.className = "feedback correct";
+            bodyEl.className = "mode-correct";
+            score++;
+        } else {
+            feedbackEl.innerHTML = `FEL! Rätt svar: <strong>${correctAnswer}</strong>`;
+            feedbackEl.className = "feedback incorrect";
+            bodyEl.className = "mode-incorrect";
+        }
+
+        document.getElementById("answer-input").disabled = true;
+        document.getElementById("action-btn").textContent = "Nästa ord (Tryck Enter)";
+        document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt: ${score}`;
+        isWaitingForNext = true;
+    }
+
+    function nextWord() {
+        currentIndex++;
+        showWord();
+    }
+
+    function endQuiz() {
+        document.getElementById("body").className = "";
+        document.getElementById("word-display").textContent = "Förhöret är klart!";
+        document.getElementById("answer-input").classList.add("hidden");
+        document.getElementById("action-btn").textContent = "Börja om";
+        document.getElementById("action-btn").onclick = () => {
+            document.getElementById("quiz-area").classList.add("hidden");
+            document.getElementById("setup-area").classList.remove("hidden");
+            document.getElementById("answer-input").classList.remove("hidden");
+            document.getElementById("action-btn").onclick = handleAction;
+        };
+    }
+</script>
+
+</body>
+</html>
