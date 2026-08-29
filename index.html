@@ -97,25 +97,25 @@
             padding: 10px;
             border-radius: 8px;
         }
-
+        
         /* Dynamiska bakgrunder och färger för svar */
         body.mode-correct {
-            background-color: #064e3b; /* Djupgrön bakgrund vid rätt svar */
+            background-color: #064e3b;
         }
         body.container.mode-correct {
             border-color: #10b981;
         }
-        .correct {
-            color: #ffffff;
+        .correct { 
+            color: #ffffff; 
             background-color: #059669;
             border: 2px solid #34d399;
         }
 
         body.mode-incorrect {
-            background-color: #7f1d1d; /* Djupet röd bakgrund vid fel svar */
+            background-color: #7f1d1d;
         }
-        .incorrect {
-            color: #ffffff;
+        .incorrect { 
+            color: #ffffff; 
             background-color: #dc2626;
             border: 2px solid #f87171;
         }
@@ -160,13 +160,13 @@
 <div class="container hidden" id="quiz-area">
     <h2>Vad är detta på tyska?</h2>
     <div id="word-display"></div>
-
+    
     <input type="text" id="answer-input" placeholder="Skriv på tyska och tryck Enter..." autocomplete="off">
     <br>
     <button id="action-btn" onclick="handleAction()">Svara</button>
-
+    
     <div id="feedback" class="feedback"></div>
-
+    
     <div class="stats" id="stats"></div>
 </div>
 
@@ -177,11 +177,14 @@
     let score = 0;
     let isWaitingForNext = false;
 
-    // Lyssna på Enter-tangenten överallt i quiz-läget
-    document.getElementById("answer-input").addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            handleAction();
+    // Lyssna på Enter-tangenten över hela dokumentet
+    document.addEventListener("keydown", function(event) {
+        // Körs bara om quizet faktiskt är igång (inte dolt)
+        if (!document.getElementById("quiz-area").classList.contains("hidden")) {
+            if (event.key === "Enter") {
+                event.preventDefault(); // Hindrar standardbeteenden
+                handleAction();
+            }
         }
     });
 
@@ -198,20 +201,20 @@
         try {
             wordsData = JSON.parse(jsonText);
             swedishWords = Object.keys(wordsData);
-
+            
             if (swedishWords.length === 0) {
                 alert("Listan är tom!");
                 return;
             }
 
             swedishWords.sort(() => Math.random() - 0.5);
-
+            
             currentIndex = 0;
             score = 0;
-
+            
             document.getElementById("setup-area").classList.add("hidden");
             document.getElementById("quiz-area").classList.remove("hidden");
-
+            
             showWord();
         } catch (e) {
             alert("Ogiltigt JSON-format! Kontrollera citattecken och kommatecken.");
@@ -220,21 +223,21 @@
 
     function showWord() {
         isWaitingForNext = false;
-
+        
         // Återställ färger till normalt mörkt läge
         document.getElementById("body").className = "";
         const feedbackEl = document.getElementById("feedback");
         feedbackEl.textContent = "";
         feedbackEl.className = "feedback";
-
+        
         const inputEl = document.getElementById("answer-input");
         inputEl.value = "";
         inputEl.disabled = false;
         inputEl.focus();
-
+        
         document.getElementById("action-btn").textContent = "Svara";
         document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt: ${score}`;
-
+        
         if (currentIndex < swedishWords.length) {
             document.getElementById("word-display").textContent = swedishWords[currentIndex];
         } else {
@@ -246,12 +249,12 @@
         const currentSwedishWord = swedishWords[currentIndex];
         const correctAnswer = wordsData[currentSwedishWord];
         const userAnswer = document.getElementById("answer-input").value.trim();
-
+        
         if (userAnswer === "") return;
 
         const feedbackEl = document.getElementById("feedback");
         const bodyEl = document.getElementById("body");
-
+        
         if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
             feedbackEl.textContent = "RÄTT!";
             feedbackEl.className = "feedback correct";
@@ -262,7 +265,7 @@
             feedbackEl.className = "feedback incorrect";
             bodyEl.className = "mode-incorrect";
         }
-
+        
         document.getElementById("answer-input").disabled = true;
         document.getElementById("action-btn").textContent = "Nästa ord (Tryck Enter)";
         document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt: ${score}`;
