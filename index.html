@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stort Glosförhör - Ledtrådar</title>
+    <title>Stort Glosförhör - Smarta Ledtrådar</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -187,11 +187,11 @@
     let wordsData = {};
     let swedishWords = [];
     let currentIndex = 0;
-    let score = 0; // Räknar bara de du sätter på första försöket
-    let currentMistakes = 0; // Håller koll på hur många fel du gjort på nuvarande ord
+    let score = 0;
+    let currentMistakes = 0;
+    let maxRevealed = 0; // Håller koll på hur många bokstäver från starten som avslöjats
     let isWaitingForNext = false;
 
-    // Lyssna på input-fältet
     document.getElementById("answer-input").addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
             event.preventDefault();
@@ -234,7 +234,8 @@
 
     function showWord() {
         isWaitingForNext = false;
-        currentMistakes = 0; // Nollställ antal fel för det nya ordet
+        currentMistakes = 0;
+        maxRevealed = 0;
         
         document.getElementById("body").className = "";
         const feedbackEl = document.getElementById("feedback");
@@ -271,10 +272,9 @@
         const btnEl = document.getElementById("action-btn");
         
         if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-            // Om svaret är rätt
             if (currentMistakes === 0) {
                 feedbackEl.textContent = "RÄTT!";
-                score++; // Ge bara poäng om inga fel gjorts
+                score++;
             } else {
                 feedbackEl.textContent = "RÄTT (med ledtråd)!";
             }
@@ -289,21 +289,35 @@
             document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt direkt: ${score}`;
             isWaitingForNext = true;
         } else {
-            // Om svaret är fel
             currentMistakes++;
-            
+
+            // Räkna hur många bokstäver i början som var helt rätt
+            let prefixMatch = 0;
+            const minLen = Math.min(userAnswer.length, correctAnswer.length);
+            for (let i = 0; i < minLen; i++) {
+                if (userAnswer[i].toLowerCase() === correctAnswer[i].toLowerCase()) {
+                    prefixMatch++;
+                } else {
+                    break; // Stanna vid första felaktiga bokstaven
+                }
+            }
+
+            // Ledtråden blir antingen så långt du gissat rätt, eller fler bokstäver baserat på antal fel
+            maxRevealed = Math.max(maxRevealed, prefixMatch, currentMistakes);
+
+            // Bygg ledtrådssträngen
             let hint = "";
             for (let i = 0; i < correctAnswer.length; i++) {
-                // Visa bokstaven om index är mindre än antal fel, eller om det är ett mellanslag/specialtecken
-                if (i < currentMistakes || correctAnswer[i] === " " || correctAnswer[i] === "/" || correctAnswer[i] === "-") {
-                    hint += correctAnswer[i];
+                const char = correctAnswer[i];
+                if (i < maxRevealed || char === " " || char === "/" || char === "-") {
+                    hint += char;
                 } else {
                     hint += "_";
                 }
             }
 
-            // Kolla om ledtråden har avslöjat hela ordet
-            if (hint === correctAnswer) {
+            // Om hela ordet nu har avslöjats
+            if (maxRevealed >= correctAnswer.length || hint === correctAnswer) {
                 feedbackEl.innerHTML = `Tyvärr! Svaret är:<br><span class="hint-text">${correctAnswer}</span>`;
                 feedbackEl.className = "feedback incorrect";
                 bodyEl.className = "mode-incorrect";
@@ -313,13 +327,12 @@
                 btnEl.focus();
                 isWaitingForNext = true;
             } else {
-                // Visa ledtråd och låt användaren försöka igen
                 feedbackEl.innerHTML = `FEL! Försök igen.<br><span class="hint-text">${hint}</span>`;
                 feedbackEl.className = "feedback incorrect";
                 bodyEl.className = "mode-incorrect";
                 
-                inputEl.value = ""; // Töm fältet så du kan skriva igen
-                inputEl.focus(); // Behåll muspekaren i fältet så du slipper klicka
+                inputEl.value = "";
+                inputEl.focus();
             }
         }
     }
