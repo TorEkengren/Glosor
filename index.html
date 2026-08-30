@@ -190,7 +190,6 @@
     let currentIndex = 0;
     let score = 0;
     let currentMistakes = 0;
-    let maxRevealed = 0;
     let isWaitingForNext = false;
 
     document.getElementById("answer-input").addEventListener("keypress", function(event) {
@@ -236,7 +235,6 @@
     function showWord() {
         isWaitingForNext = false;
         currentMistakes = 0;
-        maxRevealed = 0;
         
         document.getElementById("body").className = "";
         const feedbackEl = document.getElementById("feedback");
@@ -292,43 +290,26 @@
         } else {
             currentMistakes++;
 
-            // Räkna hur många bokstäver i början som var helt rätt i detta försök
-            let prefixMatch = 0;
-            const minLen = Math.min(userAnswer.length, correctAnswer.length);
-            for (let i = 0; i < minLen; i++) {
-                if (userAnswer[i].toLowerCase() === correctAnswer[i].toLowerCase()) {
-                    prefixMatch++;
-                } else {
-                    break;
+            if (currentMistakes === 1) {
+                // Första felet: Visa enbart första bokstaven (samt mellanslag/tecken)
+                let hint = "";
+                for (let i = 0; i < correctAnswer.length; i++) {
+                    const char = correctAnswer[i];
+                    if (i === 0 || char === " " || char === "/" || char === "-") {
+                        hint += char;
+                    } else {
+                        hint += "_";
+                    }
                 }
-            }
 
-            // Garantera att vi alltid ger minst 1 ny bokstav utöver tidigare max, 
-            // eller mer om användaren gissat längre rätt!
-            maxRevealed = Math.max(maxRevealed + 1, prefixMatch + 1);
-
-            // Om nästa tecken är mellanslag eller specialtecken, hoppa förbi det så att
-            // användaren alltid får en riktig bokstav avslöjad!
-            while (maxRevealed <= correctAnswer.length && 
-                   (correctAnswer[maxRevealed - 1] === " " || 
-                    correctAnswer[maxRevealed - 1] === "/" || 
-                    correctAnswer[maxRevealed - 1] === "-")) {
-                maxRevealed++;
-            }
-
-            // Bygg ledtråden
-            let hint = "";
-            for (let i = 0; i < correctAnswer.length; i++) {
-                const char = correctAnswer[i];
-                if (i < maxRevealed || char === " " || char === "/" || char === "-") {
-                    hint += char;
-                } else {
-                    hint += "_";
-                }
-            }
-
-            // Om hela ordet nu har avslöjats
-            if (maxRevealed >= correctAnswer.length || hint === correctAnswer) {
+                feedbackEl.innerHTML = `FEL! Försök igen.<br><span class="hint-text">${hint}</span>`;
+                feedbackEl.className = "feedback incorrect";
+                bodyEl.className = "mode-incorrect";
+                
+                inputEl.value = "";
+                inputEl.focus();
+            } else {
+                // Andra felet: Visa hela ordet och låt användaren gå vidare
                 feedbackEl.innerHTML = `Tyvärr! Svaret är:<br><span class="hint-text">${correctAnswer}</span>`;
                 feedbackEl.className = "feedback incorrect";
                 bodyEl.className = "mode-incorrect";
@@ -337,13 +318,6 @@
                 btnEl.textContent = "Nästa ord (Tryck Enter)";
                 btnEl.focus();
                 isWaitingForNext = true;
-            } else {
-                feedbackEl.innerHTML = `FEL! Försök igen.<br><span class="hint-text">${hint}</span>`;
-                feedbackEl.className = "feedback incorrect";
-                bodyEl.className = "mode-incorrect";
-                
-                inputEl.value = "";
-                inputEl.focus();
             }
         }
     }
