@@ -129,11 +129,12 @@
         
         .hint-text {
             font-family: monospace;
-            letter-spacing: 3px;
+            letter-spacing: 4px;
             color: #ffcccc;
             font-size: 32px;
             display: block;
             margin-top: 5px;
+            white-space: pre-wrap;
         }
     </style>
 </head>
@@ -189,7 +190,7 @@
     let currentIndex = 0;
     let score = 0;
     let currentMistakes = 0;
-    let maxRevealed = 0; // Håller koll på hur många bokstäver från starten som avslöjats
+    let maxRevealed = 0;
     let isWaitingForNext = false;
 
     document.getElementById("answer-input").addEventListener("keypress", function(event) {
@@ -291,21 +292,31 @@
         } else {
             currentMistakes++;
 
-            // Räkna hur många bokstäver i början som var helt rätt
+            // Räkna hur många bokstäver i början som var helt rätt i detta försök
             let prefixMatch = 0;
             const minLen = Math.min(userAnswer.length, correctAnswer.length);
             for (let i = 0; i < minLen; i++) {
                 if (userAnswer[i].toLowerCase() === correctAnswer[i].toLowerCase()) {
                     prefixMatch++;
                 } else {
-                    break; // Stanna vid första felaktiga bokstaven
+                    break;
                 }
             }
 
-            // Ledtråden blir antingen så långt du gissat rätt, eller fler bokstäver baserat på antal fel
-            maxRevealed = Math.max(maxRevealed, prefixMatch, currentMistakes);
+            // Garantera att vi alltid ger minst 1 ny bokstav utöver tidigare max, 
+            // eller mer om användaren gissat längre rätt!
+            maxRevealed = Math.max(maxRevealed + 1, prefixMatch + 1);
 
-            // Bygg ledtrådssträngen
+            // Om nästa tecken är mellanslag eller specialtecken, hoppa förbi det så att
+            // användaren alltid får en riktig bokstav avslöjad!
+            while (maxRevealed <= correctAnswer.length && 
+                   (correctAnswer[maxRevealed - 1] === " " || 
+                    correctAnswer[maxRevealed - 1] === "/" || 
+                    correctAnswer[maxRevealed - 1] === "-")) {
+                maxRevealed++;
+            }
+
+            // Bygg ledtråden
             let hint = "";
             for (let i = 0; i < correctAnswer.length; i++) {
                 const char = correctAnswer[i];
