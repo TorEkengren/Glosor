@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stort Glosförhör - Dark Mode</title>
+    <title>Stort Glosförhör - Ledtrådar</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -94,12 +94,13 @@
             letter-spacing: 1px;
         }
         .feedback {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: bold;
             margin: 20px 0;
-            min-height: 40px;
+            min-height: 60px;
             padding: 10px;
             border-radius: 8px;
+            line-height: 1.4;
         }
         
         body.mode-correct {
@@ -125,6 +126,15 @@
 
         .hidden { display: none; }
         .stats { margin-top: 30px; font-size: 18px; color: #9ca3af; }
+        
+        .hint-text {
+            font-family: monospace;
+            letter-spacing: 3px;
+            color: #ffcccc;
+            font-size: 32px;
+            display: block;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body id="body">
@@ -177,10 +187,11 @@
     let wordsData = {};
     let swedishWords = [];
     let currentIndex = 0;
-    let score = 0;
+    let score = 0; // Räknar bara de du sätter på första försöket
+    let currentMistakes = 0; // Håller koll på hur många fel du gjort på nuvarande ord
     let isWaitingForNext = false;
 
-    // Lyssna BARA på input-fältet (istället för hela dokumentet)
+    // Lyssna på input-fältet
     document.getElementById("answer-input").addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
             event.preventDefault();
@@ -223,6 +234,7 @@
 
     function showWord() {
         isWaitingForNext = false;
+        currentMistakes = 0; // Nollställ antal fel för det nya ordet
         
         document.getElementById("body").className = "";
         const feedbackEl = document.getElementById("feedback");
@@ -234,12 +246,10 @@
         
         inputEl.value = "";
         inputEl.disabled = false;
-        
-        // Viktigt: Flyttar tillbaka fokus till textfältet!
         inputEl.focus(); 
         
         btnEl.textContent = "Svara";
-        document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt: ${score}`;
+        document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt direkt: ${score}`;
         
         if (currentIndex < swedishWords.length) {
             document.getElementById("word-display").textContent = swedishWords[currentIndex];
@@ -251,7 +261,8 @@
     function checkAnswer() {
         const currentSwedishWord = swedishWords[currentIndex];
         const correctAnswer = wordsData[currentSwedishWord];
-        const userAnswer = document.getElementById("answer-input").value.trim();
+        const inputEl = document.getElementById("answer-input");
+        const userAnswer = inputEl.value.trim();
         
         if (userAnswer === "") return;
 
@@ -260,24 +271,57 @@
         const btnEl = document.getElementById("action-btn");
         
         if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-            feedbackEl.textContent = "RÄTT!";
+            // Om svaret är rätt
+            if (currentMistakes === 0) {
+                feedbackEl.textContent = "RÄTT!";
+                score++; // Ge bara poäng om inga fel gjorts
+            } else {
+                feedbackEl.textContent = "RÄTT (med ledtråd)!";
+            }
+            
             feedbackEl.className = "feedback correct";
             bodyEl.className = "mode-correct";
-            score++;
+            
+            inputEl.disabled = true;
+            btnEl.textContent = "Nästa ord (Tryck Enter)";
+            btnEl.focus(); 
+            
+            document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt direkt: ${score}`;
+            isWaitingForNext = true;
         } else {
-            feedbackEl.innerHTML = `FEL! Rätt svar: <strong>${correctAnswer}</strong>`;
-            feedbackEl.className = "feedback incorrect";
-            bodyEl.className = "mode-incorrect";
+            // Om svaret är fel
+            currentMistakes++;
+            
+            let hint = "";
+            for (let i = 0; i < correctAnswer.length; i++) {
+                // Visa bokstaven om index är mindre än antal fel, eller om det är ett mellanslag/specialtecken
+                if (i < currentMistakes || correctAnswer[i] === " " || correctAnswer[i] === "/" || correctAnswer[i] === "-") {
+                    hint += correctAnswer[i];
+                } else {
+                    hint += "_";
+                }
+            }
+
+            // Kolla om ledtråden har avslöjat hela ordet
+            if (hint === correctAnswer) {
+                feedbackEl.innerHTML = `Tyvärr! Svaret är:<br><span class="hint-text">${correctAnswer}</span>`;
+                feedbackEl.className = "feedback incorrect";
+                bodyEl.className = "mode-incorrect";
+                
+                inputEl.disabled = true;
+                btnEl.textContent = "Nästa ord (Tryck Enter)";
+                btnEl.focus();
+                isWaitingForNext = true;
+            } else {
+                // Visa ledtråd och låt användaren försöka igen
+                feedbackEl.innerHTML = `FEL! Försök igen.<br><span class="hint-text">${hint}</span>`;
+                feedbackEl.className = "feedback incorrect";
+                bodyEl.className = "mode-incorrect";
+                
+                inputEl.value = ""; // Töm fältet så du kan skriva igen
+                inputEl.focus(); // Behåll muspekaren i fältet så du slipper klicka
+            }
         }
-        
-        document.getElementById("answer-input").disabled = true;
-        
-        btnEl.textContent = "Nästa ord (Tryck Enter)";
-        // Viktigt: Flyttar fokus till "Nästa"-knappen så Enter fungerar direkt!
-        btnEl.focus(); 
-        
-        document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt: ${score}`;
-        isWaitingForNext = true;
     }
 
     function nextWord() {
@@ -297,7 +341,7 @@
             document.getElementById("quiz-area").classList.add("hidden");
             document.getElementById("setup-area").classList.remove("hidden");
             document.getElementById("answer-input").classList.remove("hidden");
-            btnEl.onclick = handleAction; // Återställ knappens funktion
+            btnEl.onclick = handleAction; 
         };
     }
 </script>
