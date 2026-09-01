@@ -1,11 +1,9 @@
-```html
 <!DOCTYPE html>
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stort Glosförhör - Smarta Ledtrådar</title>
-
+    <title>Stort Glosförhör - Smarta Ledtrådar & Mixat</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -17,7 +15,6 @@
             text-align: center;
             transition: background-color 0.3s ease;
         }
-
         .container {
             background-color: #1e1e1e;
             padding: 40px;
@@ -25,22 +22,15 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
             border: 1px solid #333;
         }
-
         h2 {
             font-size: 28px;
             margin-bottom: 10px;
             color: #ffffff;
         }
-
-        h3 {
-            font-size: 22px;
-        }
-
         p {
             font-size: 18px;
             color: #b0b0b0;
         }
-
         textarea {
             width: 100%;
             height: 350px;
@@ -55,12 +45,10 @@
             margin-bottom: 25px;
             resize: vertical;
         }
-
         textarea:focus {
             border-color: #3b82f6;
             outline: none;
         }
-
         input[type="text"] {
             padding: 16px;
             width: 85%;
@@ -73,12 +61,10 @@
             box-sizing: border-box;
             text-align: center;
         }
-
         input[type="text"]:focus {
             border-color: #3b82f6;
             outline: none;
         }
-
         button {
             padding: 16px 35px;
             font-size: 20px;
@@ -90,20 +76,16 @@
             border-radius: 8px;
             transition: background-color 0.2s, transform 0.1s;
         }
-
         button:hover {
             background-color: #1d4ed8;
         }
-
         button:active {
             transform: scale(0.98);
         }
-
         button:focus {
             outline: 3px solid #60a5fa;
             outline-offset: 2px;
         }
-
         #word-display {
             font-size: 42px;
             font-weight: bold;
@@ -111,7 +93,6 @@
             color: #ffffff;
             letter-spacing: 1px;
         }
-
         .feedback {
             font-size: 26px;
             font-weight: bold;
@@ -121,37 +102,31 @@
             border-radius: 8px;
             line-height: 1.4;
         }
-
+        
         body.mode-correct {
             background-color: #064e3b;
+        }
+        body.container.mode-correct {
+            border-color: #10b981;
+        }
+        .correct { 
+            color: #ffffff; 
+            background-color: #059669;
+            border: 2px solid #34d399;
         }
 
         body.mode-incorrect {
             background-color: #7f1d1d;
         }
-
-        .correct {
-            color: #ffffff;
-            background-color: #059669;
-            border: 2px solid #34d399;
-        }
-
-        .incorrect {
-            color: #ffffff;
+        .incorrect { 
+            color: #ffffff; 
             background-color: #dc2626;
             border: 2px solid #f87171;
         }
 
-        .hidden {
-            display: none;
-        }
-
-        .stats {
-            margin-top: 30px;
-            font-size: 18px;
-            color: #9ca3af;
-        }
-
+        .hidden { display: none; }
+        .stats { margin-top: 30px; font-size: 18px; color: #9ca3af; }
+        
         .hint-text {
             font-family: monospace;
             letter-spacing: 4px;
@@ -162,85 +137,52 @@
             white-space: pre-wrap;
         }
 
-        /* Resultat på slutet */
-
-        .result-box {
-            margin-top: 25px;
-            padding: 20px;
-            border-radius: 10px;
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: 17px;
+            font-weight: normal;
+        }
+        .summary-table th {
+            background-color: #3b3b3b;
+            color: #ffffff;
+            padding: 12px 15px;
             text-align: left;
         }
-
-        .mistakes-box {
-            background-color: #3f1d1d;
-            border: 2px solid #dc2626;
+        .summary-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #444;
+            text-align: left;
         }
-
-        .hint-box {
-            background-color: #3f3518;
-            border: 2px solid #eab308;
-        }
-
-        .perfect-box {
-            background-color: #065f46;
-            border: 2px solid #10b981;
-            text-align: center;
-        }
-
-        .result-title {
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
-
-        .mistakes-title {
-            color: #f87171;
-        }
-
-        .hint-title {
-            color: #facc15;
-        }
-
-        .perfect-title {
-            color: #34d399;
-        }
-
-        .word-result {
-            padding: 10px;
-            border-bottom: 1px solid #555;
-            font-size: 18px;
-        }
-
-        .word-result:last-child {
+        .summary-table tr:last-child td {
             border-bottom: none;
         }
-
-        .swedish {
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
             font-weight: bold;
+        }
+        .badge-hint {
+            background-color: #d97706;
             color: #ffffff;
         }
-
-        .german {
-            color: #d1d5db;
-        }
-
-        .score-summary {
-            font-size: 22px;
-            line-height: 1.8;
-            margin: 20px 0;
+        .badge-wrong {
+            background-color: #dc2626;
+            color: #ffffff;
         }
     </style>
 </head>
-
 <body id="body">
 
 <div class="container" id="setup-area">
-
     <h2>Dina glosor (JSON-format)</h2>
-
-    <p>
-        Redigera ordlistan nedan om du vill och tryck sedan på startknappen.
-    </p>
-
+    <p>Redigera ordlistan nedan om du vill och tryck sedan på startknappen.</p>
     <textarea id="json-input">{
   "bron": "die Brücke",
   "ljus": "hell",
@@ -265,688 +207,263 @@
   "drunkna": "ertrinken",
   "brant": "steil"
 }</textarea>
-
     <br>
-
-    <button onclick="startQuiz()">
-        Starta förhöret
-    </button>
-
+    <button onclick="startQuiz()">Starta förhöret</button>
 </div>
-
 
 <div class="container hidden" id="quiz-area">
-
-    <h2>Vad är detta på tyska?</h2>
-
+    <h2 id="question-header">Vad är detta på tyska?</h2>
     <div id="word-display"></div>
-
-    <input
-        type="text"
-        id="answer-input"
-        placeholder="Skriv på tyska och tryck Enter..."
-        autocomplete="off"
-    >
-
+    
+    <input type="text" id="answer-input" placeholder="Skriv svaret och tryck Enter..." autocomplete="off">
     <br>
-
-    <button id="action-btn" onclick="handleAction()">
-        Svara
-    </button>
-
+    <button id="action-btn" onclick="handleAction()">Svara</button>
+    
     <div id="feedback" class="feedback"></div>
-
+    
     <div class="stats" id="stats"></div>
-
 </div>
 
-
 <script>
-
-    /* =========================
-       VARIABLER
-    ========================= */
-
-    let wordsData = {};
-    let swedishWords = [];
-
+    let quizItems = [];
     let currentIndex = 0;
-
-    let score = 0;
-
+    let scoreDirect = 0;
+    let scoreHint = 0;
     let currentMistakes = 0;
-
     let isWaitingForNext = false;
+    let reviewList = []; // Sparar ord som blev fel eller behövde ledtråd
 
-    // Sparar ord där användaren fick fel två gånger
-    let mistakes = [];
-
-    // Sparar ord som användaren klarade efter ledtråd
-    let correctWithHint = [];
-
-
-    /* =========================
-       ENTER-KNAPP
-    ========================= */
-
-    document
-        .getElementById("answer-input")
-        .addEventListener("keypress", function(event) {
-
-            if (event.key === "Enter") {
-
-                event.preventDefault();
-
-                handleAction();
-            }
-        });
-
-
-    /* =========================
-       KNAPPENS FUNKTION
-    ========================= */
+    document.getElementById("answer-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            handleAction();
+        }
+    });
 
     function handleAction() {
-
         if (isWaitingForNext) {
-
             nextWord();
-
         } else {
-
             checkAnswer();
         }
     }
 
-
-    /* =========================
-       STARTA FÖRHÖRET
-    ========================= */
-
     function startQuiz() {
-
-        const jsonText =
-            document.getElementById("json-input").value;
-
+        const jsonText = document.getElementById("json-input").value;
         try {
-
-            wordsData = JSON.parse(jsonText);
-
-            swedishWords = Object.keys(wordsData);
-
-            if (swedishWords.length === 0) {
-
+            const wordsData = JSON.parse(jsonText);
+            const entries = Object.entries(wordsData);
+            
+            if (entries.length === 0) {
                 alert("Listan är tom!");
-
                 return;
             }
 
-            // Blanda orden
-            swedishWords.sort(
-                () => Math.random() - 0.5
-            );
+            // Slumpa ordningen på glosorna
+            entries.sort(() => Math.random() - 0.5);
 
+            // Skapa frågor: Hälften SV->DE, Hälften DE->SV
+            quizItems = entries.map((pair, index) => {
+                const isSvToDe = index < entries.length / 2;
+                return {
+                    question: isSvToDe ? pair[0] : pair[1],
+                    answer: isSvToDe ? pair[1] : pair[0],
+                    targetLang: isSvToDe ? "tyska" : "svenska",
+                    swedish: pair[0],
+                    german: pair[1]
+                };
+            });
+
+            // Slumpa igen så att språken blandas jämnt i förhöret
+            quizItems.sort(() => Math.random() - 0.5);
+            
             currentIndex = 0;
-
-            score = 0;
-
-            currentMistakes = 0;
-
-            mistakes = [];
-
-            correctWithHint = [];
-
-            document
-                .getElementById("setup-area")
-                .classList.add("hidden");
-
-            document
-                .getElementById("quiz-area")
-                .classList.remove("hidden");
-
+            scoreDirect = 0;
+            scoreHint = 0;
+            reviewList = [];
+            
+            document.getElementById("setup-area").classList.add("hidden");
+            document.getElementById("quiz-area").classList.remove("hidden");
+            
             showWord();
-
         } catch (e) {
-
-            alert(
-                "Ogiltigt JSON-format! Kontrollera citattecken och kommatecken."
-            );
+            alert("Ogiltigt JSON-format! Kontrollera citattecken och kommatecken.");
         }
     }
 
-
-    /* =========================
-       VISA NÄSTA ORD
-    ========================= */
-
     function showWord() {
-
         isWaitingForNext = false;
-
         currentMistakes = 0;
-
+        
         document.getElementById("body").className = "";
-
-        const feedbackEl =
-            document.getElementById("feedback");
-
-        feedbackEl.textContent = "";
-
+        const feedbackEl = document.getElementById("feedback");
+        feedbackEl.innerHTML = "";
         feedbackEl.className = "feedback";
-
-        const inputEl =
-            document.getElementById("answer-input");
-
-        const btnEl =
-            document.getElementById("action-btn");
-
+        
+        const inputEl = document.getElementById("answer-input");
+        const btnEl = document.getElementById("action-btn");
+        
         inputEl.value = "";
-
         inputEl.disabled = false;
-
-        inputEl.classList.remove("hidden");
-
-        inputEl.focus();
-
+        inputEl.focus(); 
+        
         btnEl.textContent = "Svara";
-
-        document
-            .getElementById("stats")
-            .textContent =
-            `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt direkt: ${score}`;
-
-        if (currentIndex < swedishWords.length) {
-
-            document
-                .getElementById("word-display")
-                .textContent =
-                swedishWords[currentIndex];
-
+        
+        if (currentIndex < quizItems.length) {
+            const item = quizItems[currentIndex];
+            document.getElementById("question-header").textContent = `Vad är detta på ${item.targetLang}?`;
+            document.getElementById("word-display").textContent = item.question;
+            document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${quizItems.length} | Direkt: ${scoreDirect} | Med ledtråd: ${scoreHint}`;
         } else {
-
             endQuiz();
         }
     }
 
-
-    /* =========================
-       KONTROLLERA SVAR
-    ========================= */
-
     function checkAnswer() {
+        const item = quizItems[currentIndex];
+        const correctAnswer = item.answer;
+        const inputEl = document.getElementById("answer-input");
+        const userAnswer = inputEl.value.trim();
+        
+        if (userAnswer === "") return;
 
-        const currentSwedishWord =
-            swedishWords[currentIndex];
-
-        const correctAnswer =
-            wordsData[currentSwedishWord];
-
-        const inputEl =
-            document.getElementById("answer-input");
-
-        const userAnswer =
-            inputEl.value.trim();
-
-        if (userAnswer === "") {
-
-            return;
-        }
-
-        const feedbackEl =
-            document.getElementById("feedback");
-
-        const bodyEl =
-            document.getElementById("body");
-
-        const btnEl =
-            document.getElementById("action-btn");
-
-
-        /* =========================
-           RÄTT SVAR
-        ========================= */
-
-        if (
-            userAnswer.toLowerCase() ===
-            correctAnswer.toLowerCase()
-        ) {
-
-            // Rätt direkt
+        const feedbackEl = document.getElementById("feedback");
+        const bodyEl = document.getElementById("body");
+        const btnEl = document.getElementById("action-btn");
+        
+        if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
             if (currentMistakes === 0) {
-
-                feedbackEl.textContent =
-                    "RÄTT!";
-
-                score++;
-
-            }
-
-            // Rätt efter ledtråd
-            else {
-
-                feedbackEl.textContent =
-                    "RÄTT (med ledtråd)!";
-
-                correctWithHint.push({
-
-                    swedish: currentSwedishWord,
-
-                    german: correctAnswer
-
+                feedbackEl.textContent = "RÄTT!";
+                scoreDirect++;
+            } else {
+                feedbackEl.textContent = "RÄTT (med ledtråd)!";
+                scoreHint++;
+                // Spara till repetitionstabellen
+                reviewList.push({
+                    swedish: item.swedish,
+                    german: item.german,
+                    status: "Med ledtråd"
                 });
             }
-
-
-            feedbackEl.className =
-                "feedback correct";
-
-            bodyEl.className =
-                "mode-correct";
-
+            
+            feedbackEl.className = "feedback correct";
+            bodyEl.className = "mode-correct";
+            
             inputEl.disabled = true;
-
-            btnEl.textContent =
-                "Nästa ord (Tryck Enter)";
-
-            btnEl.focus();
-
-            document
-                .getElementById("stats")
-                .textContent =
-                `Ord: ${currentIndex + 1} / ${swedishWords.length} | Rätt direkt: ${score}`;
-
+            btnEl.textContent = "Nästa ord (Tryck Enter)";
+            btnEl.focus(); 
+            
+            document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${quizItems.length} | Direkt: ${scoreDirect} | Med ledtråd: ${scoreHint}`;
             isWaitingForNext = true;
-
-        }
-
-
-        /* =========================
-           FEL SVAR
-        ========================= */
-
-        else {
-
+        } else {
             currentMistakes++;
 
-
-            /* FÖRSTA FELET */
-
             if (currentMistakes === 1) {
-
+                // Första felet: Visa första bokstaven samt mellanslag/tecken
                 let hint = "";
-
-                for (
-                    let i = 0;
-                    i < correctAnswer.length;
-                    i++
-                ) {
-
-                    const char =
-                        correctAnswer[i];
-
-                    if (
-                        i === 0 ||
-                        char === " " ||
-                        char === "/" ||
-                        char === "-"
-                    ) {
-
+                for (let i = 0; i < correctAnswer.length; i++) {
+                    const char = correctAnswer[i];
+                    if (i === 0 || char === " " || char === "/" || char === "-" || char === ",") {
                         hint += char;
-
                     } else {
-
                         hint += "_";
                     }
                 }
 
-
-                feedbackEl.innerHTML =
-                    `FEL! Försök igen.<br>
-                    <span class="hint-text">${hint}</span>`;
-
-
-                feedbackEl.className =
-                    "feedback incorrect";
-
-                bodyEl.className =
-                    "mode-incorrect";
-
+                feedbackEl.innerHTML = `FEL! Försök igen.<br><span class="hint-text">${hint}</span>`;
+                feedbackEl.className = "feedback incorrect";
+                bodyEl.className = "mode-incorrect";
+                
                 inputEl.value = "";
-
                 inputEl.focus();
-            }
-
-
-            /* ANDRA FELET */
-
-            else {
-
-                // Spara misstaget
-                mistakes.push({
-
-                    swedish: currentSwedishWord,
-
-                    german: correctAnswer
-
+            } else {
+                // Andra felet: Visa hela svaret och spara som fel
+                reviewList.push({
+                    swedish: item.swedish,
+                    german: item.german,
+                    status: "Helt fel"
                 });
 
-
-                feedbackEl.innerHTML =
-                    `Tyvärr! Svaret är:<br>
-                    <span class="hint-text">${correctAnswer}</span>`;
-
-
-                feedbackEl.className =
-                    "feedback incorrect";
-
-                bodyEl.className =
-                    "mode-incorrect";
-
+                feedbackEl.innerHTML = `Tyvärr! Svaret är:<br><span class="hint-text">${correctAnswer}</span>`;
+                feedbackEl.className = "feedback incorrect";
+                bodyEl.className = "mode-incorrect";
+                
                 inputEl.disabled = true;
-
-                btnEl.textContent =
-                    "Nästa ord (Tryck Enter)";
-
+                btnEl.textContent = "Nästa ord (Tryck Enter)";
                 btnEl.focus();
-
                 isWaitingForNext = true;
             }
         }
     }
 
-
-    /* =========================
-       NÄSTA ORD
-    ========================= */
-
     function nextWord() {
-
         currentIndex++;
-
         showWord();
     }
 
-
-    /* =========================
-       FÖRHÖRET KLART
-    ========================= */
-
     function endQuiz() {
-
         document.getElementById("body").className = "";
-
-        const wordDisplay =
-            document.getElementById("word-display");
-
-
-        /* =========================
-           RÄKNA STATISTIK
-        ========================= */
-
-        const totalWords =
-            swedishWords.length;
-
-        const hintCount =
-            correctWithHint.length;
-
-        const mistakeCount =
-            mistakes.length;
-
-
-        /* =========================
-           BYGG RESULTAT
-        ========================= */
-
-        let resultHTML = `
-
-            <h2>🎉 Förhöret är klart!</h2>
-
-            <div class="score-summary">
-
-                <div>
-                    🟢 Rätt direkt:
-                    <strong>${score}</strong>
-                </div>
-
-                <div>
-                    🟡 Rätt med ledtråd:
-                    <strong>${hintCount}</strong>
-                </div>
-
-                <div>
-                    🔴 Misstag:
-                    <strong>${mistakeCount}</strong>
-                </div>
-
-                <div>
-                    📚 Totalt:
-                    <strong>${totalWords}</strong>
-                </div>
-
-            </div>
+        document.getElementById("question-header").textContent = "Förhöret är klart!";
+        document.getElementById("word-display").textContent = "";
+        document.getElementById("answer-input").classList.add("hidden");
+        document.getElementById("stats").textContent = "";
+        
+        const feedbackEl = document.getElementById("feedback");
+        feedbackEl.className = "feedback";
+        
+        let summaryHTML = `
+            <p style="margin-bottom: 10px;">Totalt antal ord: <strong>${quizItems.length}</strong></p>
+            <p style="font-size: 18px; color: #34d399; margin: 5px 0;">Rätt direkt: <strong>${scoreDirect}</strong></p>
+            <p style="font-size: 18px; color: #fbbf24; margin: 5px 0;">Rätt med ledtråd: <strong>${scoreHint}</strong></p>
+            <p style="font-size: 18px; color: #f87171; margin: 5px 0 20px 0;">Helt fel: <strong>${quizItems.length - scoreDirect - scoreHint}</strong></p>
         `;
-
-
-        /* =========================
-           PERFEKT RESULTAT
-        ========================= */
-
-        if (
-            score === totalWords
-        ) {
-
-            resultHTML += `
-
-                <div class="result-box perfect-box">
-
-                    <h3 class="result-title perfect-title">
-                        🎉 Perfekt!
-                    </h3>
-
-                    <div>
-                        Du hade alla rätt direkt!
-                    </div>
-
-                </div>
+        
+        if (reviewList.length > 0) {
+            summaryHTML += `
+                <div style="margin-top: 25px; text-align: left;">
+                    <h3 style="color: #ffffff; text-align: center; margin-bottom: 10px;">Ord att repetera (${reviewList.length} st):</h3>
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>Svenska</th>
+                                <th>Tyska</th>
+                                <th>Resultat</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
-        }
-
-
-        /* =========================
-           MISSTAG
-        ========================= */
-
-        if (mistakes.length > 0) {
-
-            resultHTML += `
-
-                <div class="result-box mistakes-box">
-
-                    <h3 class="result-title mistakes-title">
-                        ❌ Misstag (${mistakes.length})
-                    </h3>
-            `;
-
-
-            mistakes.forEach(function(word) {
-
-                resultHTML += `
-
-                    <div class="word-result">
-
-                        <span class="swedish">
-                            ${escapeHTML(word.swedish)}
-                        </span>
-
-                        →
-
-                        <span class="german">
-                            ${escapeHTML(word.german)}
-                        </span>
-
-                    </div>
+            reviewList.forEach(item => {
+                const badgeClass = item.status === "Med ledtråd" ? "badge-hint" : "badge-wrong";
+                summaryHTML += `
+                    <tr>
+                        <td style="color: #e0e0e0;">${item.swedish}</td>
+                        <td style="color: #60a5fa; font-weight: bold;">${item.german}</td>
+                        <td><span class="status-badge ${badgeClass}">${item.status}</span></td>
+                    </tr>
                 `;
             });
-
-
-            resultHTML += `
-
+            summaryHTML += `
+                        </tbody>
+                    </table>
                 </div>
             `;
+        } else {
+            summaryHTML += `<p style="color: #34d399; font-size: 24px; margin-top: 20px;">Fantastiskt! Alla rätt på första försöket! 🎉</p>`;
         }
-
-
-        /* =========================
-           RÄTT MED LEDTRÅD
-        ========================= */
-
-        if (correctWithHint.length > 0) {
-
-            resultHTML += `
-
-                <div class="result-box hint-box">
-
-                    <h3 class="result-title hint-title">
-                        💡 Rätt med ledtråd (${correctWithHint.length})
-                    </h3>
-            `;
-
-
-            correctWithHint.forEach(function(word) {
-
-                resultHTML += `
-
-                    <div class="word-result">
-
-                        <span class="swedish">
-                            ${escapeHTML(word.swedish)}
-                        </span>
-
-                        →
-
-                        <span class="german">
-                            ${escapeHTML(word.german)}
-                        </span>
-
-                    </div>
-                `;
-            });
-
-
-            resultHTML += `
-
-                </div>
-            `;
-        }
-
-
-        /* =========================
-           INGA FEL
-        ========================= */
-
-        if (
-            mistakes.length === 0 &&
-            correctWithHint.length === 0
-        ) {
-
-            resultHTML += `
-
-                <div class="result-box perfect-box">
-
-                    <h3 class="result-title perfect-title">
-                        🏆 Fantastiskt!
-                    </h3>
-
-                    <div>
-                        Du behövde inte ens en ledtråd!
-                    </div>
-
-                </div>
-            `;
-        }
-
-
-        /* VISA RESULTAT */
-
-        wordDisplay.innerHTML =
-            resultHTML;
-
-
-        /* GÖM SVARSFÄLT */
-
-        document
-            .getElementById("answer-input")
-            .classList.add("hidden");
-
-
-        /* TÖM FEEDBACK */
-
-        document
-            .getElementById("feedback")
-            .textContent = "";
-
-
-        document
-            .getElementById("stats")
-            .textContent = "";
-
-
-        /* =========================
-           BÖRJA OM-KNAPP
-        ========================= */
-
-        const btnEl =
-            document.getElementById("action-btn");
-
-        btnEl.textContent =
-            "Börja om";
-
+        
+        feedbackEl.innerHTML = summaryHTML;
+        
+        const btnEl = document.getElementById("action-btn");
+        btnEl.textContent = "Börja om";
         btnEl.focus();
-
-
-        btnEl.onclick = function() {
-
-            document
-                .getElementById("quiz-area")
-                .classList.add("hidden");
-
-            document
-                .getElementById("setup-area")
-                .classList.remove("hidden");
-
-            document
-                .getElementById("answer-input")
-                .classList.remove("hidden");
-
-
-            // Återställ knappens funktion
-            btnEl.onclick =
-                handleAction;
+        btnEl.onclick = () => {
+            document.getElementById("quiz-area").classList.add("hidden");
+            document.getElementById("setup-area").classList.remove("hidden");
+            document.getElementById("answer-input").classList.remove("hidden");
+            btnEl.onclick = handleAction; 
         };
     }
-
-
-    /* =========================
-       SKYDDA HTML
-       ========================= */
-
-    function escapeHTML(text) {
-
-        return String(text)
-
-            .replace(/&/g, "&amp;")
-
-            .replace(/</g, "&lt;")
-
-            .replace(/>/g, "&gt;")
-
-            .replace(/"/g, "&quot;")
-
-            .replace(/'/g, "&#039;");
-    }
-
 </script>
 
 </body>
 </html>
-```
