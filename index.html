@@ -183,38 +183,22 @@
             justify-content: center;
             flex-wrap: wrap;
         }
+        .save-indicator {
+            font-size: 14px;
+            color: #10b981;
+            margin-top: -15px;
+            margin-bottom: 15px;
+            display: block;
+        }
     </style>
 </head>
 <body id="body">
 
 <div class="container" id="setup-area">
     <h2>Dina glosor (JSON-format)</h2>
-    <p>Redigera ordlistan nedan om du vill och tryck sedan på startknappen.</p>
-    <textarea id="json-input">{
-  "bron": "die Brücke",
-  "ljus": "hell",
-  "hög/t": "hoch",
-  "absolut": "unbedingt",
-  "sätta upp tältet": "das Zelt aufbauen",
-  "någonstans": "irgendwo",
-  "på något sätt": "irgendwie",
-  "helvetet": "die Hölle",
-  "kyrkan": "die Kirche",
-  "meningen": "der Sinn",
-  "det roliga": "der Spaß",
-  "stolen": "der Stuhl",
-  "Tysklands största ö": "Rügen",
-  "åska": "donnern",
-  "upptagen / upptaget": "besetzt",
-  "klippan": "der Fels",
-  "upplevelsen": "das Erlebnis",
-  "myggan": "die Mücke",
-  "kön": "der Stau",
-  "trakten, området": "die Gegend",
-  "drunkna": "ertrinken",
-  "brant": "steil"
-}</textarea>
-    <br>
+    <p>Klistra in dina glosor nedan. De sparas automatiskt i webbläsaren.</p>
+    <textarea id="json-input" placeholder='{\n  "svenska": "tyska"\n}'>{}</textarea>
+    <span class="save-indicator" id="save-status">✓ Sparas automatiskt</span>
     <button onclick="startQuiz()">Starta förhöret</button>
 </div>
 
@@ -232,6 +216,8 @@
 </div>
 
 <script>
+    const STORAGE_KEY = "saved_glosor_data";
+
     let quizItems = [];
     let currentIndex = 0;
     let scoreDirect = 0;
@@ -240,6 +226,17 @@
     let isWaitingForNext = false;
     let reviewList = []; 
     let lastFullEntries = [];
+
+    window.addEventListener("DOMContentLoaded", () => {
+        const savedText = localStorage.getItem(STORAGE_KEY);
+        if (savedText) {
+            document.getElementById("json-input").value = savedText;
+        }
+    });
+
+    document.getElementById("json-input").addEventListener("input", function() {
+        localStorage.setItem(STORAGE_KEY, this.value);
+    });
 
     document.getElementById("answer-input").addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
@@ -263,19 +260,20 @@
             const entries = Object.entries(wordsData);
             
             if (entries.length === 0) {
-                alert("Listan är tom!");
+                alert("Listan är tom! Lägg till några glosor först.");
                 return;
             }
+
+            localStorage.setItem(STORAGE_KEY, jsonText);
 
             lastFullEntries = entries;
             initQuizFromEntries(entries);
         } catch (e) {
-            alert("Ogiltigt JSON-format! Kontrollera citattecken och kommatecken.");
+            alert("Ogiltigt JSON-format! Kontrollera att du har korrekt struktur, citattecken och kommatecken.");
         }
     }
 
     function restartWithErrors() {
-        // Skapa en unika lista av fel/ledtrådsord
         const uniqueEntriesMap = new Map();
         reviewList.forEach(item => uniqueEntriesMap.set(item.swedish, item.german));
         
@@ -288,7 +286,6 @@
     function initQuizFromEntries(entries) {
         const shuffled = [...entries].sort(() => Math.random() - 0.5);
 
-        // Skapa frågor: Hälften SV->DE, Hälften DE->SV
         quizItems = shuffled.map((pair, index) => {
             const isSvToDe = index < shuffled.length / 2;
             return {
@@ -481,7 +478,6 @@
             summaryHTML += `<p style="color: #34d399; font-size: 24px; margin-top: 20px;">Fantastiskt! Alla rätt på första försöket! 🎉</p>`;
         }
 
-        // Lägg till knappvalen
         summaryHTML += `<div class="end-btn-group">`;
         summaryHTML += `<button onclick="initQuizFromEntries(lastFullEntries)">Börja om alla (${lastFullEntries.length})</button>`;
         
