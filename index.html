@@ -66,8 +66,8 @@
             outline: none;
         }
         button {
-            padding: 16px 35px;
-            font-size: 20px;
+            padding: 16px 28px;
+            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             background-color: #2563eb;
@@ -124,7 +124,7 @@
             border: 2px solid #f87171;
         }
 
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .stats { margin-top: 30px; font-size: 18px; color: #9ca3af; }
         
         .hint-text {
@@ -176,6 +176,13 @@
             background-color: #dc2626;
             color: #ffffff;
         }
+        .end-btn-group {
+            margin-top: 25px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body id="body">
@@ -186,7 +193,7 @@
     <textarea id="json-input">{
   "bron": "die Brücke",
   "ljus": "hell",
-  "högt": "hoch",
+  "hög/t": "hoch",
   "absolut": "unbedingt",
   "sätta upp tältet": "das Zelt aufbauen",
   "någonstans": "irgendwo",
@@ -198,12 +205,12 @@
   "stolen": "der Stuhl",
   "Tysklands största ö": "Rügen",
   "åska": "donnern",
-  "upptagen": "besetzt",
+  "upptagen / upptaget": "besetzt",
   "klippan": "der Fels",
   "upplevelsen": "das Erlebnis",
   "myggan": "die Mücke",
   "kön": "der Stau",
-  "trakten": "die Gegend",
+  "trakten, området": "die Gegend",
   "drunkna": "ertrinken",
   "brant": "steil"
 }</textarea>
@@ -231,7 +238,8 @@
     let scoreHint = 0;
     let currentMistakes = 0;
     let isWaitingForNext = false;
-    let reviewList = []; // Sparar ord som blev fel eller behövde ledtråd
+    let reviewList = []; 
+    let lastFullEntries = [];
 
     document.getElementById("answer-input").addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
@@ -259,36 +267,52 @@
                 return;
             }
 
-            // Slumpa ordningen på glosorna
-            entries.sort(() => Math.random() - 0.5);
-
-            // Skapa frågor: Hälften SV->DE, Hälften DE->SV
-            quizItems = entries.map((pair, index) => {
-                const isSvToDe = index < entries.length / 2;
-                return {
-                    question: isSvToDe ? pair[0] : pair[1],
-                    answer: isSvToDe ? pair[1] : pair[0],
-                    targetLang: isSvToDe ? "tyska" : "svenska",
-                    swedish: pair[0],
-                    german: pair[1]
-                };
-            });
-
-            // Slumpa igen så att språken blandas jämnt i förhöret
-            quizItems.sort(() => Math.random() - 0.5);
-            
-            currentIndex = 0;
-            scoreDirect = 0;
-            scoreHint = 0;
-            reviewList = [];
-            
-            document.getElementById("setup-area").classList.add("hidden");
-            document.getElementById("quiz-area").classList.remove("hidden");
-            
-            showWord();
+            lastFullEntries = entries;
+            initQuizFromEntries(entries);
         } catch (e) {
             alert("Ogiltigt JSON-format! Kontrollera citattecken och kommatecken.");
         }
+    }
+
+    function restartWithErrors() {
+        // Skapa en unika lista av fel/ledtrådsord
+        const uniqueEntriesMap = new Map();
+        reviewList.forEach(item => uniqueEntriesMap.set(item.swedish, item.german));
+        
+        const entries = Array.from(uniqueEntriesMap.entries());
+        if (entries.length > 0) {
+            initQuizFromEntries(entries);
+        }
+    }
+
+    function initQuizFromEntries(entries) {
+        const shuffled = [...entries].sort(() => Math.random() - 0.5);
+
+        // Skapa frågor: Hälften SV->DE, Hälften DE->SV
+        quizItems = shuffled.map((pair, index) => {
+            const isSvToDe = index < shuffled.length / 2;
+            return {
+                question: isSvToDe ? pair[0] : pair[1],
+                answer: isSvToDe ? pair[1] : pair[0],
+                targetLang: isSvToDe ? "tyska" : "svenska",
+                swedish: pair[0],
+                german: pair[1]
+            };
+        });
+
+        quizItems.sort(() => Math.random() - 0.5);
+        
+        currentIndex = 0;
+        scoreDirect = 0;
+        scoreHint = 0;
+        reviewList = [];
+        
+        document.getElementById("setup-area").classList.add("hidden");
+        document.getElementById("quiz-area").classList.remove("hidden");
+        document.getElementById("answer-input").classList.remove("hidden");
+        document.getElementById("action-btn").classList.remove("hidden");
+        
+        showWord();
     }
 
     function showWord() {
@@ -338,7 +362,6 @@
             } else {
                 feedbackEl.textContent = "RÄTT (med ledtråd)!";
                 scoreHint++;
-                // Spara till repetitionstabellen
                 reviewList.push({
                     swedish: item.swedish,
                     german: item.german,
@@ -359,7 +382,6 @@
             currentMistakes++;
 
             if (currentMistakes === 1) {
-                // Första felet: Visa första bokstaven samt mellanslag/tecken
                 let hint = "";
                 for (let i = 0; i < correctAnswer.length; i++) {
                     const char = correctAnswer[i];
@@ -377,7 +399,6 @@
                 inputEl.value = "";
                 inputEl.focus();
             } else {
-                // Andra felet: Visa hela svaret och spara som fel
                 reviewList.push({
                     swedish: item.swedish,
                     german: item.german,
@@ -401,11 +422,17 @@
         showWord();
     }
 
+    function goToSetup() {
+        document.getElementById("quiz-area").classList.add("hidden");
+        document.getElementById("setup-area").classList.remove("hidden");
+    }
+
     function endQuiz() {
         document.getElementById("body").className = "";
         document.getElementById("question-header").textContent = "Förhöret är klart!";
         document.getElementById("word-display").textContent = "";
         document.getElementById("answer-input").classList.add("hidden");
+        document.getElementById("action-btn").classList.add("hidden");
         document.getElementById("stats").textContent = "";
         
         const feedbackEl = document.getElementById("feedback");
@@ -418,10 +445,13 @@
             <p style="font-size: 18px; color: #f87171; margin: 5px 0 20px 0;">Helt fel: <strong>${quizItems.length - scoreDirect - scoreHint}</strong></p>
         `;
         
+        const uniqueReviewMap = new Map();
+        reviewList.forEach(item => uniqueReviewMap.set(item.swedish, item.german));
+
         if (reviewList.length > 0) {
             summaryHTML += `
                 <div style="margin-top: 25px; text-align: left;">
-                    <h3 style="color: #ffffff; text-align: center; margin-bottom: 10px;">Ord att repetera (${reviewList.length} st):</h3>
+                    <h3 style="color: #ffffff; text-align: center; margin-bottom: 10px;">Ord att repetera (${uniqueReviewMap.size} st):</h3>
                     <table class="summary-table">
                         <thead>
                             <tr>
@@ -450,18 +480,19 @@
         } else {
             summaryHTML += `<p style="color: #34d399; font-size: 24px; margin-top: 20px;">Fantastiskt! Alla rätt på första försöket! 🎉</p>`;
         }
+
+        // Lägg till knappvalen
+        summaryHTML += `<div class="end-btn-group">`;
+        summaryHTML += `<button onclick="initQuizFromEntries(lastFullEntries)">Börja om alla (${lastFullEntries.length})</button>`;
+        
+        if (uniqueReviewMap.size > 0) {
+            summaryHTML += `<button onclick="restartWithErrors()" style="background-color: #d97706;">Repetera svåra (${uniqueReviewMap.size})</button>`;
+        }
+        
+        summaryHTML += `<button onclick="goToSetup()" style="background-color: #4b5563;">Ändra glosor</button>`;
+        summaryHTML += `</div>`;
         
         feedbackEl.innerHTML = summaryHTML;
-        
-        const btnEl = document.getElementById("action-btn");
-        btnEl.textContent = "Börja om";
-        btnEl.focus();
-        btnEl.onclick = () => {
-            document.getElementById("quiz-area").classList.add("hidden");
-            document.getElementById("setup-area").classList.remove("hidden");
-            document.getElementById("answer-input").classList.remove("hidden");
-            btnEl.onclick = handleAction; 
-        };
     }
 </script>
 
