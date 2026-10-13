@@ -228,7 +228,7 @@
             border: 2px solid #f87171;
         }
 
-        /* Ny-ordsfönster (Lila) */
+        /* Ny-ordsfönster (Lila - enbart i byggläge) */
         body.mode-new-word { background-color: #4c1d95; }
         .intro-card {
             background-color: #6b21a8;
@@ -379,7 +379,7 @@
 <div class="container hidden" id="quiz-area">
     <h2 id="question-header">Vad är detta på tyska?</h2>
     
-    <!-- Lila kort för ny introduktion -->
+    <!-- Lila kort för ny introduktion i Byggläge -->
     <div id="intro-area" class="intro-card hidden">
         <div class="intro-title">★ Nytt ord att lära sig ★</div>
         <div class="intro-word" id="intro-word"></div>
@@ -406,7 +406,7 @@
 
 <script>
     const STORAGE_KEY = "saved_glosor_data";
-    const SETTINGS_KEY = "saved_glosor_settings_v4";
+    const SETTINGS_KEY = "saved_glosor_settings_v5";
 
     let quizItems = [];
     let fullDeck = []; 
@@ -579,8 +579,8 @@
             const item = quizItems[currentIndex];
             const itemKey = item.question + "->" + item.answer;
 
-            // Om ordet är helt nytt i denna session -> Visa lila introduktionsvy
-            if (!seenQuestions.has(itemKey)) {
+            // VISA ENBART LILA INTRO OM DET ÄR BYGGLÄGE
+            if (mode === "build" && !seenQuestions.has(itemKey)) {
                 seenQuestions.add(itemKey);
                 isIntroState = true;
 
