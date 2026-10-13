@@ -65,7 +65,7 @@
             color: #a3a3a3;
             margin-bottom: 6px;
         }
-        .field input[type="text"], .field select {
+        .field input[type="text"], .field input[type="number"], .field select {
             padding: 10px 12px;
             font-size: 16px;
             background-color: #333;
@@ -228,6 +228,38 @@
             border: 2px solid #f87171;
         }
 
+        /* Ny-ordsfönster (Lila) */
+        body.mode-new-word { background-color: #4c1d95; }
+        .intro-card {
+            background-color: #6b21a8;
+            border: 2px solid #a855f7;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .intro-title {
+            color: #e9d5ff;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .intro-word {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .intro-arrow {
+            font-size: 24px;
+            color: #c084fc;
+            margin: 8px 0;
+        }
+        .intro-translation {
+            font-size: 32px;
+            font-weight: bold;
+            color: #f0abfc;
+        }
+
         .hidden { display: none !important; }
         .stats { margin-top: 25px; font-size: 17px; color: #9ca3af; }
         
@@ -300,7 +332,7 @@
 
 <div class="container" id="setup-area">
     <h2>Glosförhör - Inställningar</h2>
-    <p>Anpassa förhörsläge, språk och fördelning nedan.</p>
+    <p>Anpassa förhörsläge, försök, språk och fördelning nedan.</p>
     
     <div class="settings-card">
         <h3>Språk & Förhörsläge</h3>
@@ -313,13 +345,17 @@
                 <label for="lang2-name">Språk 2 (Höger i JSON)</label>
                 <input type="text" id="lang2-name" value="Tyska">
             </div>
-            <div class="field" style="grid-column: span 2;">
+            <div class="field">
                 <label for="quiz-mode-select">Förhörstyp</label>
                 <select id="quiz-mode-select">
                     <option value="write">Skrivläge (skriv svaret själv)</option>
                     <option value="choice">Flervalsläge (välj mellan 4 alternativ)</option>
                     <option value="build">Byggläge (1 ord ➔ 2 ord ➔ 3 ord...)</option>
                 </select>
+            </div>
+            <div class="field">
+                <label for="max-attempts">Max antal försök per ord</label>
+                <input type="number" id="max-attempts" min="1" max="5" value="2">
             </div>
         </div>
         
@@ -342,6 +378,15 @@
 
 <div class="container hidden" id="quiz-area">
     <h2 id="question-header">Vad är detta på tyska?</h2>
+    
+    <!-- Lila kort för ny introduktion -->
+    <div id="intro-area" class="intro-card hidden">
+        <div class="intro-title">★ Nytt ord att lära sig ★</div>
+        <div class="intro-word" id="intro-word"></div>
+        <div class="intro-arrow">⬇</div>
+        <div class="intro-translation" id="intro-translation"></div>
+    </div>
+
     <div id="word-display"></div>
     
     <!-- Skrivläge -->
@@ -361,7 +406,7 @@
 
 <script>
     const STORAGE_KEY = "saved_glosor_data";
-    const SETTINGS_KEY = "saved_glosor_settings_v3";
+    const SETTINGS_KEY = "saved_glosor_settings_v4";
 
     let quizItems = [];
     let fullDeck = []; 
@@ -370,10 +415,11 @@
     let scoreHint = 0;
     let currentMistakes = 0;
     let isWaitingForNext = false;
+    let isIntroState = false;
     let reviewList = []; 
     let lastFullEntries = [];
+    let seenQuestions = new Set();
 
-    // Variabler för Byggläge (Stegvis)
     let buildPoolSize = 1; 
     let buildPassedRound = true;
 
@@ -389,6 +435,7 @@
                 if (s.lang2) document.getElementById("lang2-name").value = s.lang2;
                 if (s.ratio !== undefined) document.getElementById("ratio-slider").value = s.ratio;
                 if (s.mode) document.getElementById("quiz-mode-select").value = s.mode;
+                if (s.maxAttempts) document.getElementById("max-attempts").value = s.maxAttempts;
             } catch (e) {}
         }
         updateSliderLabel();
@@ -400,7 +447,8 @@
             lang1: document.getElementById("lang1-name").value.trim() || "Svenska",
             lang2: document.getElementById("lang2-name").value.trim() || "Tyska",
             ratio: document.getElementById("ratio-slider").value,
-            mode: document.getElementById("quiz-mode-select").value
+            mode: document.getElementById("quiz-mode-select").value,
+            maxAttempts: document.getElementById("max-attempts").value
         };
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     }
@@ -410,6 +458,7 @@
     document.getElementById("lang2-name").addEventListener("input", () => { updateSliderLabel(); saveSettings(); });
     document.getElementById("ratio-slider").addEventListener("input", () => { updateSliderLabel(); saveSettings(); });
     document.getElementById("quiz-mode-select").addEventListener("change", saveSettings);
+    document.getElementById("max-attempts").addEventListener("input", saveSettings);
 
     function updateSliderLabel() {
         const l1 = document.getElementById("lang1-name").value.trim() || "Språk 1";
@@ -430,7 +479,9 @@
     });
 
     function handleAction() {
-        if (isWaitingForNext) {
+        if (isIntroState) {
+            startQuestionAfterIntro();
+        } else if (isWaitingForNext) {
             nextWord();
         } else {
             checkAnswer();
@@ -504,6 +555,7 @@
         scoreDirect = 0;
         scoreHint = 0;
         reviewList = [];
+        seenQuestions = new Set();
         
         document.getElementById("setup-area").classList.add("hidden");
         document.getElementById("quiz-area").classList.remove("hidden");
@@ -525,31 +577,30 @@
         
         if (currentIndex < quizItems.length) {
             const item = quizItems[currentIndex];
-            document.getElementById("question-header").textContent = `Vad är detta på ${item.targetLang.toLowerCase()}?`;
-            document.getElementById("word-display").textContent = item.question;
-            
-            if (mode === "build") {
-                document.getElementById("stats").textContent = `Byggläge: ${currentIndex + 1} / ${quizItems.length} (Mål: ${fullDeck.length} ord)`;
-            } else {
-                document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${quizItems.length} | Direkt: ${scoreDirect} | Med ledtråd: ${scoreHint}`;
+            const itemKey = item.question + "->" + item.answer;
+
+            // Om ordet är helt nytt i denna session -> Visa lila introduktionsvy
+            if (!seenQuestions.has(itemKey)) {
+                seenQuestions.add(itemKey);
+                isIntroState = true;
+
+                document.getElementById("body").className = "mode-new-word";
+                document.getElementById("question-header").textContent = "Nytt ord!";
+                document.getElementById("word-display").classList.add("hidden");
+                document.getElementById("write-container").classList.add("hidden");
+                document.getElementById("options-container").classList.add("hidden");
+
+                document.getElementById("intro-area").classList.remove("hidden");
+                document.getElementById("intro-word").textContent = item.question;
+                document.getElementById("intro-translation").textContent = item.answer;
+
+                btnEl.classList.remove("hidden");
+                btnEl.textContent = "Jag förstår (Tryck Enter)";
+                btnEl.focus();
+                return;
             }
 
-            if (mode === "choice") {
-                document.getElementById("write-container").classList.add("hidden");
-                document.getElementById("options-container").classList.remove("hidden");
-                btnEl.classList.add("hidden");
-                setupOptions(item);
-            } else {
-                document.getElementById("write-container").classList.remove("hidden");
-                document.getElementById("options-container").classList.add("hidden");
-                btnEl.classList.remove("hidden");
-                btnEl.textContent = "Svara";
-                
-                const inputEl = document.getElementById("answer-input");
-                inputEl.value = "";
-                inputEl.disabled = false;
-                inputEl.focus();
-            }
+            startQuestionAfterIntro();
         } else {
             if (mode === "build") {
                 if (buildPassedRound) {
@@ -571,6 +622,43 @@
                 }
             }
             endQuiz();
+        }
+    }
+
+    function startQuestionAfterIntro() {
+        isIntroState = false;
+        document.getElementById("body").className = "";
+        document.getElementById("intro-area").classList.add("hidden");
+        document.getElementById("word-display").classList.remove("hidden");
+
+        const mode = document.getElementById("quiz-mode-select").value;
+        const btnEl = document.getElementById("action-btn");
+        const item = quizItems[currentIndex];
+
+        document.getElementById("question-header").textContent = `Vad är detta på ${item.targetLang.toLowerCase()}?`;
+        document.getElementById("word-display").textContent = item.question;
+        
+        if (mode === "build") {
+            document.getElementById("stats").textContent = `Byggläge: ${currentIndex + 1} / ${quizItems.length} (Mål: ${fullDeck.length} ord)`;
+        } else {
+            document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${quizItems.length} | Direkt: ${scoreDirect} | Med ledtråd: ${scoreHint}`;
+        }
+
+        if (mode === "choice") {
+            document.getElementById("write-container").classList.add("hidden");
+            document.getElementById("options-container").classList.remove("hidden");
+            btnEl.classList.add("hidden");
+            setupOptions(item);
+        } else {
+            document.getElementById("write-container").classList.remove("hidden");
+            document.getElementById("options-container").classList.add("hidden");
+            btnEl.classList.remove("hidden");
+            btnEl.textContent = "Svara";
+            
+            const inputEl = document.getElementById("answer-input");
+            inputEl.value = "";
+            inputEl.disabled = false;
+            inputEl.focus();
         }
     }
 
@@ -646,6 +734,7 @@
         const correctAnswer = item.answer;
         const inputEl = document.getElementById("answer-input");
         const userAnswer = inputEl.value.trim();
+        const maxAttempts = parseInt(document.getElementById("max-attempts").value, 10) || 2;
         
         if (userAnswer === "") return;
 
@@ -679,7 +768,7 @@
             currentMistakes++;
             buildPassedRound = false;
 
-            if (currentMistakes === 1) {
+            if (currentMistakes < maxAttempts) {
                 let hint = "";
                 for (let i = 0; i < correctAnswer.length; i++) {
                     const char = correctAnswer[i];
@@ -690,7 +779,7 @@
                     }
                 }
 
-                feedbackEl.innerHTML = `FEL! Försök igen.<br><span class="hint-text">${hint}</span>`;
+                feedbackEl.innerHTML = `FEL! Försök igen (Försök ${currentMistakes} av ${maxAttempts}).<br><span class="hint-text">${hint}</span>`;
                 feedbackEl.className = "feedback incorrect";
                 bodyEl.className = "mode-incorrect";
                 
@@ -732,6 +821,7 @@
         document.getElementById("body").className = "";
         document.getElementById("question-header").textContent = "Förhöret är klart!";
         document.getElementById("word-display").textContent = "";
+        document.getElementById("intro-area").classList.add("hidden");
         document.getElementById("write-container").classList.add("hidden");
         document.getElementById("options-container").classList.add("hidden");
         document.getElementById("action-btn").classList.add("hidden");
