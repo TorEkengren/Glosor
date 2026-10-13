@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stort Glosförhör - Anpassningsbart & Flerval</title>
+    <title>Stort Glosförhör - Byggläge & Anpassat</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -145,7 +145,6 @@
             text-align: center;
         }
 
-        /* Flervalsknappar */
         .options-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -319,6 +318,7 @@
                 <select id="quiz-mode-select">
                     <option value="write">Skrivläge (skriv svaret själv)</option>
                     <option value="choice">Flervalsläge (välj mellan 4 alternativ)</option>
+                    <option value="build">Byggläge (1 ord ➔ 2 ord ➔ 3 ord...)</option>
                 </select>
             </div>
         </div>
@@ -330,7 +330,7 @@
                 <span class="ratio-badge" id="ratio-badge">50% / 50%</span>
             </div>
             <div class="ratio-desc" id="ratio-desc">
-                50% chans att svara på Tyska | 50% chans att svara på Svenska
+                50% chans att översätta till Tyska | 50% chans att översätta till Svenska
             </div>
         </div>
     </div>
@@ -361,9 +361,10 @@
 
 <script>
     const STORAGE_KEY = "saved_glosor_data";
-    const SETTINGS_KEY = "saved_glosor_settings_v2";
+    const SETTINGS_KEY = "saved_glosor_settings_v3";
 
     let quizItems = [];
+    let fullDeck = []; 
     let currentIndex = 0;
     let scoreDirect = 0;
     let scoreHint = 0;
@@ -371,6 +372,10 @@
     let isWaitingForNext = false;
     let reviewList = []; 
     let lastFullEntries = [];
+
+    // Variabler för Byggläge (Stegvis)
+    let buildPoolSize = 1; 
+    let buildPassedRound = true;
 
     window.addEventListener("DOMContentLoaded", () => {
         const savedText = localStorage.getItem(STORAGE_KEY);
@@ -451,7 +456,6 @@
         }
     }
 
-    // Repetitionsfilter
     function restartWithErrors(onlyHard = false) {
         const uniqueEntriesMap = new Map();
         reviewList.forEach(item => {
@@ -475,7 +479,7 @@
 
         const shuffled = [...entries].sort(() => Math.random() - 0.5);
 
-        quizItems = shuffled.map((pair) => {
+        fullDeck = shuffled.map((pair) => {
             const isToLang2 = Math.random() < ratioL2;
             return {
                 question: isToLang2 ? pair[0] : pair[1],
@@ -486,7 +490,15 @@
             };
         });
 
-        quizItems.sort(() => Math.random() - 0.5);
+        const mode = document.getElementById("quiz-mode-select").value;
+
+        if (mode === "build") {
+            buildPoolSize = 1;
+            buildPassedRound = true;
+            quizItems = fullDeck.slice(0, buildPoolSize);
+        } else {
+            quizItems = [...fullDeck].sort(() => Math.random() - 0.5);
+        }
         
         currentIndex = 0;
         scoreDirect = 0;
@@ -515,9 +527,19 @@
             const item = quizItems[currentIndex];
             document.getElementById("question-header").textContent = `Vad är detta på ${item.targetLang.toLowerCase()}?`;
             document.getElementById("word-display").textContent = item.question;
-            document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${quizItems.length} | Direkt: ${scoreDirect} | Med ledtråd: ${scoreHint}`;
+            
+            if (mode === "build") {
+                document.getElementById("stats").textContent = `Byggläge: ${currentIndex + 1} / ${quizItems.length} (Mål: ${fullDeck.length} ord)`;
+            } else {
+                document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${quizItems.length} | Direkt: ${scoreDirect} | Med ledtråd: ${scoreHint}`;
+            }
 
-            if (mode === "write") {
+            if (mode === "choice") {
+                document.getElementById("write-container").classList.add("hidden");
+                document.getElementById("options-container").classList.remove("hidden");
+                btnEl.classList.add("hidden");
+                setupOptions(item);
+            } else {
                 document.getElementById("write-container").classList.remove("hidden");
                 document.getElementById("options-container").classList.add("hidden");
                 btnEl.classList.remove("hidden");
@@ -527,14 +549,27 @@
                 inputEl.value = "";
                 inputEl.disabled = false;
                 inputEl.focus();
-            } else {
-                // Flervalsläge
-                document.getElementById("write-container").classList.add("hidden");
-                document.getElementById("options-container").classList.remove("hidden");
-                btnEl.classList.add("hidden");
-                setupOptions(item);
             }
         } else {
+            if (mode === "build") {
+                if (buildPassedRound) {
+                    if (buildPoolSize < fullDeck.length) {
+                        buildPoolSize++;
+                        quizItems = fullDeck.slice(0, buildPoolSize);
+                        quizItems.sort(() => Math.random() - 0.5);
+                        currentIndex = 0;
+                        buildPassedRound = true;
+                        showWord();
+                        return;
+                    }
+                } else {
+                    quizItems.sort(() => Math.random() - 0.5);
+                    currentIndex = 0;
+                    buildPassedRound = true;
+                    showWord();
+                    return;
+                }
+            }
             endQuiz();
         }
     }
@@ -543,16 +578,13 @@
         const container = document.getElementById("options-container");
         container.innerHTML = "";
 
-        // Samla alla möjliga unika svar för målspråket
         const allPossibleAnswers = Array.from(new Set(
             lastFullEntries.map(e => currentItem.targetLang === (document.getElementById("lang2-name").value.trim() || "Tyska") ? e[1] : e[0])
         ));
 
-        // Hämta felaktiga alternativ
         let distractors = allPossibleAnswers.filter(a => a.toLowerCase() !== currentItem.answer.toLowerCase());
         distractors.sort(() => Math.random() - 0.5);
         
-        // Välj max 3 felaktiga alternativ
         let choices = distractors.slice(0, 3);
         choices.push(currentItem.answer);
         choices.sort(() => Math.random() - 0.5);
@@ -584,7 +616,6 @@
             scoreDirect++;
         } else {
             selectedBtn.classList.add("wrong-choice");
-            // Markera det rätta alternativet i grön färg
             allOptionBtns.forEach(btn => {
                 if (btn.textContent.toLowerCase() === correctAnswer.toLowerCase()) {
                     btn.classList.add("correct-choice");
@@ -595,6 +626,7 @@
             feedbackEl.className = "feedback incorrect";
             bodyEl.className = "mode-incorrect";
 
+            buildPassedRound = false;
             reviewList.push({
                 lang1Val: item.lang1Val,
                 lang2Val: item.lang2Val,
@@ -607,8 +639,6 @@
         btnEl.textContent = "Nästa ord (Tryck Enter)";
         btnEl.focus();
         isWaitingForNext = true;
-
-        document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${quizItems.length} | Direkt: ${scoreDirect} | Med ledtråd: ${scoreHint}`;
     }
 
     function checkAnswer() {
@@ -630,6 +660,7 @@
             } else {
                 feedbackEl.textContent = "RÄTT (med ledtråd)!";
                 scoreHint++;
+                buildPassedRound = false;
                 reviewList.push({
                     lang1Val: item.lang1Val,
                     lang2Val: item.lang2Val,
@@ -643,11 +674,10 @@
             inputEl.disabled = true;
             btnEl.textContent = "Nästa ord (Tryck Enter)";
             btnEl.focus(); 
-            
-            document.getElementById("stats").textContent = `Ord: ${currentIndex + 1} / ${quizItems.length} | Direkt: ${scoreDirect} | Med ledtråd: ${scoreHint}`;
             isWaitingForNext = true;
         } else {
             currentMistakes++;
+            buildPassedRound = false;
 
             if (currentMistakes === 1) {
                 let hint = "";
@@ -710,14 +740,7 @@
         const feedbackEl = document.getElementById("feedback");
         feedbackEl.className = "feedback";
         
-        const wrongCount = quizItems.length - scoreDirect - scoreHint;
-
-        let summaryHTML = `
-            <p style="margin-bottom: 10px;">Totalt antal ord: <strong>${quizItems.length}</strong></p>
-            <p style="font-size: 18px; color: #34d399; margin: 5px 0;">Rätt direkt: <strong>${scoreDirect}</strong></p>
-            <p style="font-size: 18px; color: #fbbf24; margin: 5px 0;">Rätt med ledtråd: <strong>${scoreHint}</strong></p>
-            <p style="font-size: 18px; color: #f87171; margin: 5px 0 20px 0;">Helt fel: <strong>${wrongCount}</strong></p>
-        `;
+        let summaryHTML = `<p style="color: #34d399; font-size: 24px; margin-bottom: 20px;">🎉 Bra jobbat! Du tog dig igenom hela gloslistan!</p>`;
         
         const uniqueAllErrors = new Map();
         const uniqueHardErrors = new Map();
@@ -732,7 +755,7 @@
         if (reviewList.length > 0) {
             summaryHTML += `
                 <div style="margin-top: 25px; text-align: left;">
-                    <h3 style="color: #ffffff; text-align: center; margin-bottom: 10px;">Ord att repetera (${uniqueAllErrors.size} st):</h3>
+                    <h3 style="color: #ffffff; text-align: center; margin-bottom: 10px;">Ord du behövde träna mer på (${uniqueAllErrors.size} st):</h3>
                     <table class="summary-table">
                         <thead>
                             <tr>
@@ -758,8 +781,6 @@
                     </table>
                 </div>
             `;
-        } else {
-            summaryHTML += `<p style="color: #34d399; font-size: 24px; margin-top: 20px;">Fantastiskt! Alla rätt på första försöket! 🎉</p>`;
         }
 
         summaryHTML += `<div class="end-btn-group">`;
